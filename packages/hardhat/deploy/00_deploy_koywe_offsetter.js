@@ -17,16 +17,31 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   const { deployer } = await getNamedAccounts();
   const chainId = await getChainId();
 
-  await deploy("YourContract", {
+  await deploy("KoyweOffsetter", {
     // Learn more about args here: https://www.npmjs.com/package/hardhat-deploy#deploymentsdeploy
     from: deployer,
-    // args: [ "Hello", ethers.utils.parseEther("1.5") ],
+    args: [
+      "0x2359677e513bc83106268514c5b2de3c29c849ea",
+      "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
+    ],
     log: true,
     waitConfirmations: 5,
   });
 
   // Getting a previously deployed contract
-  const YourContract = await ethers.getContract("YourContract", deployer);
+  const KoyweOffsetter = await ethers.getContract("KoyweOffsetter", deployer);
+  // add BCT to eligible toucan tokens
+  await KoyweOffsetter.setEligibleTokenAddress(
+    "0x2F800Db0fdb5223b3C3f354886d907A671414A7F"
+  );
+  // add NCT to eligible toucan tokens
+  await KoyweOffsetter.setEligibleTokenAddress(
+    "0xD838290e877E0188a4A44700463419ED96c16107"
+  );
+  // transfer to GAK
+  await KoyweOffsetter.transferOwnership(
+    "0x40f9bf922c23c43acdad71Ab4425280C0ffBD697"
+  );
   /*  await YourContract.setPurpose("Hello");
   
     To take ownership of yourContract using the ownable library uncomment next line and add the 
@@ -76,4 +91,4 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId }) => {
   //   console.error(error);
   // }
 };
-module.exports.tags = ["YourContract"];
+module.exports.tags = ["KoyweOffsetter"];

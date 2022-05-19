@@ -27,7 +27,7 @@ const { isAddress, getAddress, formatUnits, parseUnits } = utils;
 //
 // Select the network you want to deploy to here:
 //
-const defaultNetwork = "localhost";
+const defaultNetwork = "matic";
 
 const mainnetGwei = 21;
 
@@ -147,8 +147,8 @@ module.exports = {
       },
     },
     matic: {
-      url: "https://rpc-mainnet.maticvigil.com/",
-      gasPrice: 1000000000,
+      url: "https://polygon-rpc.com/",
+      gasPrice: 50000000000,
       accounts: {
         mnemonic: mnemonic(),
       },
@@ -265,7 +265,7 @@ module.exports = {
         version: "0.8.4",
         settings: {
           optimizer: {
-            enabled: true,
+            enabled: false,
             runs: 200,
           },
         },

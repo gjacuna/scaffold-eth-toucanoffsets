@@ -1,4 +1,4 @@
-import { Button, Col, Menu, Row } from "antd";
+import { Button, Col, Menu, Row, notification, Typography } from "antd";
 import "antd/dist/antd.css";
 import {
   useBalance,
@@ -33,6 +33,8 @@ import { Home, ExampleUI, Hints, Subgraph } from "./views";
 import { useStaticJsonRPC } from "./hooks";
 
 const { ethers } = require("ethers");
+const qs = require("qs");
+const { Text } = Typography;
 /*
     Welcome to 🏗 scaffold-eth !
 
@@ -53,7 +55,7 @@ const { ethers } = require("ethers");
 */
 
 /// 📡 What chain are your contracts deployed to?
-const initialNetwork = NETWORKS.localhost; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
+const initialNetwork = NETWORKS.polygon; // <------- select your target frontend network (localhost, rinkeby, xdai, mainnet)
 
 // 😬 Sorry for all the console logging
 const DEBUG = true;
@@ -244,6 +246,78 @@ function App(props) {
 
   const faucetAvailable = localProvider && localProvider.connection && targetNetwork.name.indexOf("local") !== -1;
 
+  const [buying, setBuying] = useState();
+
+  const handleOffset = async () => {
+    setBuying(true);
+    const _params = {
+      buyToken: "0x2F800Db0fdb5223b3C3f354886d907A671414A7F",
+      buyAmount: ethers.utils.parseEther(`1`).toString(),
+      sellToken: "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
+    };
+
+    try {
+      const response = await fetch(`https://polygon.api.0x.org/swap/v1/quote?${qs.stringify(_params)}`);
+      const tokdata = await response.json();
+
+      console.log(tokdata);
+
+      if (tokdata.code === 100) {
+        let errorMsg = "";
+
+        tokdata.validationErrors.forEach(error => {
+          errorMsg += ` ${error.reason} |`;
+        });
+        console.log(`ERROR: |${errorMsg}`);
+      } else {
+        const parameters = [
+          "0x2F800Db0fdb5223b3C3f354886d907A671414A7F",
+          "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
+          ethers.utils.parseEther(`1`),
+          ethers.utils.parseEther(`0.0015`),
+          tokdata.data,
+          {
+            retiringEntityString: "Guillermo",
+            beneficiary: "0x40f9bf922c23c43acdad71Ab4425280C0ffBD697",
+            beneficiaryString: "GAK",
+            retirementMessage: "Retired from one-click Koywe Offsetter",
+          },
+        ];
+        const calldata = readContracts?.KoyweOffsetter?.interface?.encodeFunctionData("offsetFromToken", parameters);
+        const newTx = {
+          to: readContracts?.KoyweOffsetter?.address,
+          data: calldata,
+          value: ethers.BigNumber.from("0"),
+          from: address,
+          gasPrice: ethers.utils.parseUnits(`${tokdata.gasPrice}`, 9),
+        };
+        console.log(newTx);
+        const result = await userSigner.sendTransaction(newTx);
+
+        console.log(result);
+
+        notification.open({
+          message: "Swap complete 🌳",
+          description: (
+            <>
+              <Text>{`Retired CO2 Tokens: `}</Text>
+              <a href={`https://polygonscan.com/tx/${result?.hash}`} target={"_blank"} rel="noreferrer">
+                <Text copyable>{result?.hash}</Text>
+              </a>
+            </>
+          ),
+        });
+        // await tx(
+        //   writeContracts.KoyweOffsetter.offsetFromToken(
+        //   ),
+        // );
+      }
+    } catch (e) {
+      console.log("Error while trying to get a 0x quote: ", e);
+    }
+    setBuying(false);
+  };
+
   return (
     <div className="App">
       {/* ✏️ Edit the header and change the title to your project name */}
@@ -263,7 +337,7 @@ function App(props) {
         <Menu.Item key="/debug">
           <Link to="/debug">Debug Contracts</Link>
         </Menu.Item>
-        <Menu.Item key="/hints">
+        {/* <Menu.Item key="/hints">
           <Link to="/hints">Hints</Link>
         </Menu.Item>
         <Menu.Item key="/exampleui">
@@ -274,13 +348,16 @@ function App(props) {
         </Menu.Item>
         <Menu.Item key="/subgraph">
           <Link to="/subgraph">Subgraph</Link>
-        </Menu.Item>
+        </Menu.Item> */}
       </Menu>
 
       <Switch>
         <Route exact path="/">
+          <Button onClick={handleOffset} size="large" shape="round">
+            Retire and Mint Certificate for 1 BCT from WETH
+          </Button>
           {/* pass in any web3 props to this Home component. For example, yourLocalBalance */}
-          <Home yourLocalBalance={yourLocalBalance} readContracts={readContracts} />
+          {/* <Home yourLocalBalance={yourLocalBalance} readContracts={readContracts} /> */}
         </Route>
         <Route exact path="/debug">
           {/*
@@ -290,7 +367,7 @@ function App(props) {
             */}
 
           <Contract
-            name="YourContract"
+            name="KoyweOffsetter"
             price={price}
             signer={userSigner}
             provider={localProvider}
@@ -299,15 +376,15 @@ function App(props) {
             contractConfig={contractConfig}
           />
         </Route>
-        <Route path="/hints">
+        {/* <Route path="/hints">
           <Hints
             address={address}
             yourLocalBalance={yourLocalBalance}
             mainnetProvider={mainnetProvider}
             price={price}
           />
-        </Route>
-        <Route path="/exampleui">
+        </Route> */}
+        {/* <Route path="/exampleui">
           <ExampleUI
             address={address}
             userSigner={userSigner}
@@ -320,8 +397,8 @@ function App(props) {
             readContracts={readContracts}
             purpose={purpose}
           />
-        </Route>
-        <Route path="/mainnetdai">
+        </Route> */}
+        {/* <Route path="/mainnetdai">
           <Contract
             name="DAI"
             customContract={mainnetContracts && mainnetContracts.contracts && mainnetContracts.contracts.DAI}
@@ -332,7 +409,7 @@ function App(props) {
             contractConfig={contractConfig}
             chainId={1}
           />
-          {/*
+          
             <Contract
               name="UNI"
               customContract={mainnetContracts && mainnetContracts.contracts && mainnetContracts.contracts.UNI}
@@ -341,16 +418,16 @@ function App(props) {
               address={address}
               blockExplorer="https://etherscan.io/"
             />
-            */}
-        </Route>
-        <Route path="/subgraph">
+           
+        </Route> */}
+        {/* <Route path="/subgraph">
           <Subgraph
             subgraphUri={props.subgraphUri}
             tx={tx}
             writeContracts={writeContracts}
             mainnetProvider={mainnetProvider}
           />
-        </Route>
+        </Route> */}
       </Switch>
 
       <ThemeSwitch />
